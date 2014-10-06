@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Dalton Security Group Analysis</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo="/>
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="/static/css/sortable-theme-bootstrap.css" />
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/static/js/sortable.min.js"></script>
+  </head>
+  <body>
+    <table class="table table-condensed table-hover sortable-theme-bootstrap" data-sortable>
+      <thead><tr><th>Region</th><th>Role</th><th>Name</th><th>Security Groups</th></tr></thead>
+      <tbody>
+        {% for (region, role, name, groups, has_correct_roles) in records %}
+          {% set class = "success" if has_correct_roles else "danger" %}
+          <tr class="{{ class }}"><td>{{ region }}</td><td>{{ role }}</td><td>{{ name }}</td><td>{{ "|".join(groups) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
