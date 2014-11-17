@@ -1,7 +1,13 @@
+from logging import getLogger
+
+from boto.exception import EC2ResponseError
 import boto.ec2
 import boto.vpc
 
 from dalton.config.models import Rule
+
+log = getLogger(__name__)
+
 
 class Ec2SecurityGroupService(object):
     """
@@ -29,13 +35,19 @@ class Ec2SecurityGroupService(object):
 
     def authorize_ingress_rules(self, group_name, rules, region, vpc=None, dry_run=False):
         for rule in rules:
-            self._client(region, vpc).authorize_security_group(dry_run=dry_run,
-                                                               **self._to_ip_permissions(rule, group_name, region, vpc))
+            try:
+                self._client(region, vpc).authorize_security_group(dry_run=dry_run,
+                                                                   **self._to_ip_permissions(rule, group_name, region, vpc))
+            except EC2ResponseError, e:
+                log.info(e)
 
     def revoke_ingress_rules(self, group_name, rules, region, vpc=None, dry_run=False):
         for rule in rules:
-            self._client(region, vpc).revoke_security_group(dry_run=dry_run,
-                                                            **self._to_ip_permissions(rule, group_name, region, vpc))
+            try:
+                self._client(region, vpc).revoke_security_group(dry_run=dry_run,
+                                                                **self._to_ip_permissions(rule, group_name, region, vpc))
+            except EC2ResponseError, e:
+                log.info(e)
 
     def _get_security_group(self, group_name, region, vpc=None):
         matching = filter(lambda group: group.name == group_name, self.get_all(region, vpc))

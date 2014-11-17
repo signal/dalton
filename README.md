@@ -48,6 +48,8 @@ a corresponding `test/test_foo.py`. Tests may be run using the [nose test runner
 ## Next Steps
 
 1. Add missing unit tests.
-2. Add support for the existing roadhouse API.
-3. Fork roadhouse, extract improved library into it, and send pull request.
-4. Improve multi-cloud security group abstraction. (VPC currently exposed in SecurityGroupService interface.)
+2. Add support for managing security group descriptions.
+3. Add support for creating new security groups.
+4. Add support for the existing roadhouse API.
+5. Fork roadhouse, extract improved library into it, and send pull request.
+6. Improve multi-cloud security group abstraction. (VPC currently exposed in SecurityGroupService interface.)

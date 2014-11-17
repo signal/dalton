@@ -13,7 +13,7 @@ Options:
   -h --help             Show this screen.
 """
 
-from logging import basicConfig, getLogger, INFO, DEBUG
+from logging import basicConfig, getLogger, CRITICAL, DEBUG
 
 from docopt import docopt
 import yaml
@@ -29,7 +29,7 @@ def main(env, region, dry_run):
     format='%(asctime)s %(levelname)-3s %(name)s (%(funcName)s:%(lineno)d) %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
   )
-  getLogger('boto').level = INFO
+  getLogger('boto').level = CRITICAL
 
   loader = YamlFileSecurityGroupsConfigLoader("config/%s/security_groups_%s.yaml" % (env, region))
   updater = SecurityGroupUpdater(Ec2SecurityGroupService(yaml.load(open('config/aws.yaml', 'r').read())[env]))
