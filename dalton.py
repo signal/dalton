@@ -13,7 +13,7 @@ Options:
   -h --help             Show this screen.
 """
 
-from logging import basicConfig, getLogger, CRITICAL, DEBUG
+from logging import basicConfig, getLogger, CRITICAL, INFO
 
 from docopt import docopt
 import yaml
@@ -25,7 +25,7 @@ from dalton.updater import SecurityGroupUpdater
 
 def main(env, region, dry_run):
   basicConfig(
-    level=DEBUG,
+    level=INFO,
     format='%(asctime)s %(levelname)-3s %(name)s (%(funcName)s:%(lineno)d) %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
   )
