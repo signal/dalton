@@ -10,8 +10,6 @@ from time import time
 from plone.memoize import ram
 from flask import Flask, render_template
 
-REGIONS = ['us-east-1','us-west-1','eu-west-1','ap-northeast-1','us-west-2']
-
 DIGIT = re.compile("\d")
 UNDERSCORE = re.compile("_")
 
@@ -23,33 +21,34 @@ def fetch_records(env):
   credentials = yaml.load(open('config/aws.yaml', 'r').read())[env]
 
   records = []
-  for region in REGIONS:
-    ec2 = connect_to_region(region, **credentials)
-    for reservation in get_all_reservations(ec2):
-      if len(reservation.instances) > 1:
-        print "More than one instance in this reservation: %s" % reservation.id
-        continue
+  ec2 = connect_to_region('us-east-1', **credentials)
+  for reservation in get_all_reservations(ec2):
+    print reservation.instances[0]
+    if len(reservation.instances) > 1:
+      print "More than one instance in this reservation: %s" % reservation.id
+      continue
 
-      instance = reservation.instances[0]
-      name = instance.tags.get('Name', instance.id)
-      groups = [group.name for group in reservation.groups]
+    instance = reservation.instances[0]
+    region = instance.region.name
+    name = instance.tags.get('Name', instance.id)
+    groups = [group.name for group in reservation.groups]
 
-      m = DIGIT.search(name)
-      role = name[0:m.start()] if m else "unknown"
+    m = DIGIT.search(name)
+    role = name[0:m.start()] if m else "unknown"
 
-      if "default" not in groups:
-        print "%s missing default group" % name
-      groups = [group for group in groups if group != "default"]
+    if "default" not in groups:
+      print "%s missing default group" % name
+    groups = [group for group in groups if group != "default"]
 
-      has_correct_roles = len(groups) > 0
-      for group in groups:
-        if group.startswith("cassandra_"):
-          m = UNDERSCORE.search(group)
-          g = group[m.start()+1:len(group)] if m else group
-        else:
-          g = "graph" if group == "graphite" else group
-        has_correct_roles = has_correct_roles and role == g
-      records.append([region, role, name, groups, has_correct_roles])
+    has_correct_roles = len(groups) > 0
+    for group in groups:
+      if group.startswith("cassandra_"):
+        m = UNDERSCORE.search(group)
+        g = group[m.start()+1:len(group)] if m else group
+      else:
+        g = "graph" if group == "graphite" else group
+      has_correct_roles = has_correct_roles and role == g
+    records.append([region, role, name, groups, has_correct_roles])
   return records
 
 app = Flask(__name__)
