@@ -5,4 +5,4 @@ flask
 cachetools
 pyparsing
 nose
-pymock
+--allow-external pymock
