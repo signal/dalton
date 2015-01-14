@@ -37,8 +37,8 @@ class RuleParsingTest(unittest.TestCase):
         assert_sequence_equal([self.app_server1], RuleParser.parse("tcp port 8000-8100 0.0.0.0/0"))
 
     def test_address_port_range_multiple_ports(self):
-        assert_sequence_equal([self.http_server, self.https_server, self.app_server1],
-                              RuleParser.parse("tcp port 80, 443, 8000-8100 0.0.0.0/0"))
+        expected = [self.http_server, self.https_server, self.app_server1]
+        assert_sequence_equal(expected, RuleParser.parse("tcp port 80, 443, 8000-8100 0.0.0.0/0"))
 
     def test_address_multiple_port_ranges(self):
         assert_sequence_equal([self.app_server1, self.app_server2], RuleParser.parse("tcp port 8000-8100, 9000-9100 0.0.0.0/0"))
@@ -55,8 +55,8 @@ class RuleParsingTest(unittest.TestCase):
         assert_sequence_equal([self.all_tcp], RuleParser.parse("tcp port 0-65535 default"))
 
     def test_group_name_includes_dot(self):
-        assert_sequence_equal([Rule(protocol="tcp", from_port=80, to_port=80, security_group_name="web.group")],
-                              RuleParser.parse("tcp port 80 web.group"))
+        expected = Rule(protocol="tcp", from_port=80, to_port=80, security_group_name="web.group")
+        assert_sequence_equal([expected], RuleParser.parse("tcp port 80 web.group"))
 
     @raises(ParseException)
     def test_group_name_starts_with_dot(self):
@@ -71,19 +71,15 @@ class RuleParsingTest(unittest.TestCase):
         assert_sequence_equal(expected, RuleParser.parse("tcp port 22, 2812, 4001 default"))
 
     def test_group_name_port_range(self):
-        expected = [
-            Rule(protocol="tcp", from_port=61620, to_port=61621, security_group_name="cassandra")
-        ]
-        assert_sequence_equal(expected, RuleParser.parse("tcp port 61620-61621 cassandra"))
+        expected = Rule(protocol="tcp", from_port=61620, to_port=61621, security_group_name="cassandra")
+        assert_sequence_equal([expected], RuleParser.parse("tcp port 61620-61621 cassandra"))
 
     def test_group_name_multiple_ports_port_ranges(self):
         assert_sequence_equal(self.cassandra, RuleParser.parse("tcp port 7000-7001,7199, 61620-61621 cassandra"))
 
     def test_group_id(self):
-        expected = [
-            Rule(protocol="tcp", from_port=0, to_port=65535, security_group_id="sg-12345")
-        ]
-        assert_sequence_equal(expected, RuleParser.parse("tcp port 0-65535 sg-12345"))
+        expected = Rule(protocol="tcp", from_port=0, to_port=65535, security_group_id="sg-12345")
+        assert_sequence_equal([expected], RuleParser.parse("tcp port 0-65535 sg-12345"))
 
     def test_tcp_default(self):
         assert_sequence_equal([self.all_tcp], RuleParser.parse("port 0-65535 default"))
@@ -104,10 +100,8 @@ class RuleParsingTest(unittest.TestCase):
         assert_sequence_equal([self.single_address], RuleParser.parse("tcp port 0-65535 1.2.3.4"))
 
     def test_udp(self):
-        expected = [
-            Rule(protocol="udp", from_port=2003, to_port=2003, address="1.2.3.4/29")
-        ]
-        assert_sequence_equal(expected, RuleParser.parse("udp port 2003 1.2.3.4/29"))
+        expected = Rule(protocol="udp", from_port=2003, to_port=2003, address="1.2.3.4/29")
+        assert_sequence_equal([expected], RuleParser.parse("udp port 2003 1.2.3.4/29"))
 
     def test_icmp(self):
         expected = [
@@ -133,6 +127,13 @@ class RuleParsingTest(unittest.TestCase):
     @raises(ParseException)
     def test_invalid_mask(self):
         RuleParser.parse("tcp port 80 0.0.0.0/zz")
+
+    def test_protocol_is_case_insensitive(self):
+        expected = Rule(protocol="udp", from_port=2003, to_port=2003, address="1.2.3.4/29")
+        assert_sequence_equal([expected], RuleParser.parse("UDP port 2003 1.2.3.4/29"))
+
+    def test_port_is_case_insensitive(self):
+        assert_sequence_equal([self.http_server], RuleParser.parse("tcp PORT 80 0.0.0.0/0"))
 
     # @raises(ParseException)
     # def test_mask_with_whitespace(self):

@@ -55,8 +55,37 @@ class YamlFileSecurityGroupsConfigLoader(object):
 
 class RuleParser(object):
     """
-    Responsible for parsing security group rules. Rules have the form
-      <protocol:optional, default tcp> "port"(optional) (<security-group-id> | <security-group-name> | <ip-address-with-optional-mask>)
+    Responsible for parsing security group rules.
+
+    Rule syntax is specified in Augmented Backus-Naur Form (ABNF), including the following core ABNF syntax rules
+    defined by that specification: ALPHA (letters), DIGIT (decimal digits), and SP (space).
+
+      Rule                = [ protocol SP ] [ "port" SP ] ports SP source
+
+      protocol            = "tcp" / "udp" / "icmp"
+
+      ports               = port-range *[ [ SP ] "," [ SP ] port-range ]
+      port-range          = port [ "-" port ]
+      port                = 1*DIGIT
+
+      source              = security-group-id / security-group-name / ipv4-cidr-block
+
+      security-group-id   = "sg-" 1*alphanum
+      security-group-name = 1*ALPHA *(alphanum / "-" / "." / "-")
+      alphanum            = ALPHA / DIGIT
+
+      ipv4-cidr-block     = ipv4-address [ "/" ipv4-cidr-length ]
+      ipv4-address        = dec-octet "." dec-octet "." dec-octet "." dec-octet
+      dec-octet           = DIGIT                 ; 0-9
+                          / %x31-39 DIGIT         ; 10-99
+                          / "1" 2DIGIT            ; 100-199
+                          / "2" %x30-34 DIGIT     ; 200-249
+                          / "25" %x30-35          ; 250-255
+      ipv4-cidr-length    = DIGIT                 ; 0-9
+                          / %x31-32 DIGIT         ; 10-29
+                          / "3" %x30-32           ; 30-32
+
+    If unspecified, protocol will default to "tcp".
 
     See the test cases for examples of supported rules.
     """
