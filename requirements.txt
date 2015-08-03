@@ -5,4 +5,6 @@ flask
 cachetools
 pyparsing
 nose
+--allow-unverified pymock
 --allow-external pymock
+pymock==1.0.5.1
