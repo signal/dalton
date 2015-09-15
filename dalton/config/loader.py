@@ -43,14 +43,14 @@ class YamlFileSecurityGroupsConfigLoader(object):
     def parse_configs(cls, security_group_configs):
         security_groups = {}
         for security_group_name, security_group_config in security_group_configs.iteritems():
-            security_groups[security_group_name] = cls.parse_config(security_group_config)
+            security_groups[security_group_name] = cls.parse_config(security_group_config or {})
         return security_groups
 
     @classmethod
     def parse_config(cls, security_group_config):
-        options = security_group_config['options']
+        options = security_group_config.get('options', {})
         rules = set(rule for rule_string in security_group_config.get('rules', []) for rule in RuleParser.parse(rule_string))
-        return SecurityGroup(options['description'], rules, prune=options['prune'])
+        return SecurityGroup(options.get('description', "Dalton Paradise"), rules, prune=options.get('prune', True))
 
 
 class RuleParser(object):

@@ -3,6 +3,26 @@
 Runs the [Road House](https://github.com/awsroadhouse/roadhouse) Security Groups.
 Keeps the Bad Guys out and the Good Guys in.
 
+Dalton consists of two pieces
+1. Library to parse rule configs and update your cloud config
+2. Dalton runner which reads one rule config per logical env / AWS region and updates AWS.
+
+But wait, there's more!
+3. Analysis web app which checks all AWS instances and highlights those that don't have the correct groups.
+   You'll need to update this for your Security Group Policy. Currently requires "default" for all instances,
+   a group which matches the server type (i.e., the server name prefix before the first digit), and a couple
+   special cases for Cassandra and graphite names.
+
+## History
+
+Dalton started as a fork of [Road House](https://github.com/awsroadhouse/roadhouse) to support
+- EC2 Classic instead of VPCs
+- Separation of rules config from updating (to eventually support non-AWS)
+
+The eventual goal is to merge this back into Roadhouse. First we need to reintroduce solid support
+for VPCs, as Shift (who produced Roadhouse) is very VPC-centric. Also, until the library supports
+the existing Roadhouse API, a pull request is unlikely to be merged.
+
 ## Install
 
 You are using `virtualenv`, right? Good. Most likely, you'll want to install dalton within its own `virtualenv`.
@@ -19,16 +39,60 @@ Now, install all dependencies in the virtualenv:
 
 Dalton should now have access to the all required libraries.
 
-## Configuration
+## Library Usage
 
-There are two pieces of configuration for using Dalton.
+Security Group Rules are loaded and parsed using the `YamlFileSecurityGroupsConfigLoader`. For example,
+to load a separate config for each logical environment `env` and AWS `region`:
+
+    loader = YamlFileSecurityGroupsConfigLoader("config/%s/security_groups_%s.yaml" % (env, region))
+    security_groups = loader.load()
+
+Different clouds can be used by specifying the correct `SecurityGroupService`. For example, to connect to AWS for a
+specific logical environment `env`, use the `Ec2SecurityGroupService`:
+
+    ec2service = Ec2SecurityGroupService(yaml.load(open('config/aws.yaml', 'r').read())[env])
+
+*Note: currently only AWS/EC2 is supported.*
+
+The `SecurityGroupUpdater` coordinate rule addition/removal so that the cloud config matches the desired config.
+Simply call `update_security_group_rules` for each security group:
+
+    updater = SecurityGroupUpdater(ec2service)
+    for name, security_group in security_groups.iteritems():
+        updater.update_security_group_rules(name, security_group.rules, region, prune=security_group.prune, dry_run=dry_run)
+
+## Dalton Configuration
+
+There are two pieces of configuration for using the Dalton runner.
 
 1. AWS Credentials: located in `./config/aws.yaml`.
 2. Security Group Rules: located in `./config` with one environment `<env>` per directory and one region `<region>` per file.
 
-See the [Road House README](https://github.com/awsroadhouse/roadhouse) for configuration file format and examples.
+The AWS Credentials file format is as follows.
 
-## Usage
+    <env>:
+      aws_access_key_id: <access_key>
+      aws_secret_access_key: <secret_key>
+
+The Security Group Rules files have a name of the format `<env>/security_groups_<region>.yaml`.
+The format is best understood by example.
+
+    <security-group-name>:
+      options:
+        description: <description>
+        prune: <true if you want Dalton to remove unknown rules from the group>
+
+      rules:
+        - tcp port 0-65535 mygroup1     # Security Group 'mygroup1' to All TCP
+        - udp port 0-65535 mygroup1     # Security Group 'mygroup1' to All UDP
+        - icmp port 0-255 mygroup1      # Security Group 'mygroup1' to All ICMP
+        - tcp port 80, 443 0.0.0.0/0    # Anywhere to HTTP/HTTPS
+        - tcp port 22 1.2.3.4/32        # bastion host to SSH
+
+See the [Road House README](https://github.com/awsroadhouse/roadhouse) for additional
+Security Group Rules configuration details and examples.
+
+## Dalton Usage
 
 You probably want to know the changes before you perform them. Pass the `--dry-run` (or `-d`) flags for dry-run mode.
 
@@ -49,7 +113,6 @@ a corresponding `test/test_foo.py`. Tests may be run using the [nose test runner
 
 1. Add missing unit tests.
 2. Add support for managing security group descriptions.
-3. Add support for creating new security groups.
-4. Add support for the existing roadhouse API.
-5. Fork roadhouse, extract improved library into it, and send pull request.
-6. Improve multi-cloud security group abstraction. (VPC currently exposed in SecurityGroupService interface.)
+3. Add support for the existing roadhouse API.
+4. Fork roadhouse, extract improved library into it, and send pull request.
+5. Improve multi-cloud security group abstraction. (VPC currently exposed in SecurityGroupService interface.)

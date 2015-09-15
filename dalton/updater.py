@@ -8,6 +8,12 @@ class SecurityGroupUpdater(object):
         self.security_group_service = security_group_service
 
     def update_security_group_rules(self, group_name, required_group_rules, region, vpc=None, prune=True, dry_run=False):
+        if not self.security_group_service.exists(group_name, region):
+            log.info('Creating security group %s in %s' % (group_name, region))
+            self.security_group_service.create(group_name, "dalton's gang", region, vpc, dry_run)
+            # Can't dry_run rules creation if the group doesn't actually exist yet
+            if dry_run:
+                return
         # current_group_rules always have a security_group_id and only have security_group_name when in ec2 (not vpc)
         # required_group_rules could have either security_group_id or security_group_name for group rules
         # so we normalize both to have both a security_group_id and security_group_name
