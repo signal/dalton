@@ -3,6 +3,7 @@ from logging import getLogger
 from boto.exception import EC2ResponseError
 import boto.ec2
 import boto.vpc
+from cachetools import ttl_cache
 
 from dalton.config.models import Rule
 from dalton.service import SecurityGroupService
@@ -26,7 +27,7 @@ class Ec2SecurityGroupService(SecurityGroupService):
             log.info(e.message)
 
     def exists(self, group_name, region, vpc=None):
-        return self._get_security_group(group_name, region, vpc) is not None
+        return self.get_security_group(group_name, region, vpc) is not None
 
     def delete(self, group_name, region, vpc=None, dry_run=False):
         try:
@@ -34,13 +35,18 @@ class Ec2SecurityGroupService(SecurityGroupService):
         except EC2ResponseError, e:
             log.info(e.message)
 
+    @ttl_cache()
     def get_all(self, region, vpc=None):
         security_groups = self._client(region, vpc).get_all_security_groups()
         return [security_group for security_group in security_groups
                 if (not vpc and not security_group.vpc_id) or (vpc and vpc.id == security_group.vpc_id)]
 
+    def get_security_group(self, group_name, region, vpc=None):
+        matching = filter(lambda group: group.name == group_name, self.get_all(region, vpc))
+        return matching[0] if matching else None
+
     def get_permissions(self, group_name, region, vpc=None):
-        security_group = self._get_security_group(group_name, region, vpc)
+        security_group = self.get_security_group(group_name, region, vpc)
         return self._from_ip_permissions(security_group.rules) if security_group else set()
 
     def authorize_ingress_rules(self, group_name, rules, region, vpc=None, dry_run=False):
@@ -59,10 +65,6 @@ class Ec2SecurityGroupService(SecurityGroupService):
             except EC2ResponseError, e:
                 log.info(e.message)
 
-    def _get_security_group(self, group_name, region, vpc=None):
-        matching = filter(lambda group: group.name == group_name, self.get_all(region, vpc))
-        return matching[0] if matching else None
-
     def _client(self, region, vpc):
         return boto.vpc.connect_to_region(region, **self.credentials) \
             if vpc else boto.ec2.connect_to_region(region, **self.credentials)
@@ -75,9 +77,9 @@ class Ec2SecurityGroupService(SecurityGroupService):
         else:
             from_port, to_port = int(rule.from_port), int(rule.to_port)
         source = {'ip_protocol': rule.protocol, 'from_port': from_port, 'to_port': to_port}
-        dest = {'group_id': self._get_security_group(group_name, region, vpc).id}
+        dest = {'group_id': self.get_security_group(group_name, region, vpc).id}
         if rule.security_group_name:
-            source['src_security_group_group_id'] = self._get_security_group(rule.security_group_name, region, vpc).id
+            source['src_security_group_group_id'] = self.get_security_group(rule.security_group_name, region, vpc).id
         elif rule.security_group_id:
             source['src_security_group_group_id'] = rule.security_group_id
         else:

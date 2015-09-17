@@ -8,12 +8,6 @@ class SecurityGroupUpdater(object):
         self.security_group_service = security_group_service
 
     def update_security_group_rules(self, group_name, required_group_rules, region, vpc=None, prune=True, dry_run=False):
-        if not self.security_group_service.exists(group_name, region):
-            log.info('Creating security group %s in %s' % (group_name, region))
-            self.security_group_service.create(group_name, "dalton's gang", region, vpc, dry_run)
-            # Can't dry_run rules creation if the group doesn't actually exist yet
-            if dry_run:
-                return
         # current_group_rules always have a security_group_id and only have security_group_name when in ec2 (not vpc)
         # required_group_rules could have either security_group_id or security_group_name for group rules
         # so we normalize both to have both a security_group_id and security_group_name
@@ -29,6 +23,19 @@ class SecurityGroupUpdater(object):
         if rules_to_remove and prune:
             log.info('Removing rules from group %s in %s: %s', group_name, location, self._rules_str(rules_to_remove))
             self.security_group_service.revoke_ingress_rules(group_name, rules_to_remove, region, vpc, dry_run)
+
+    def create_security_group_if_not_exists(self, group_name, description, region, vpc=None, dry_run=False):
+        if not self.security_group_service.exists(group_name, region):
+            log.info('Creating security group %s in %s' % (group_name, region))
+            self.security_group_service.create(group_name, description, region, vpc=vpc, dry_run=dry_run)
+            return True
+        return False
+
+    def delete_security_group_if(self, function, region, vpc=None, dry_run=False):
+      for security_group in self.security_group_service.get_all(region, vpc=vpc):
+        if function(security_group):
+          log.info('Deleting security group %s in %s' % (security_group.name, region))
+          self.security_group_service.delete(security_group.name, region, vpc=vpc, dry_run=dry_run)
 
     def _normalize_security_group_rules(self, required_group_rules, region, vpc=None):
         security_groups_by_id, security_groups_by_name = self._build_security_group_indices(region, vpc)

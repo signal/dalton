@@ -12,6 +12,9 @@ class SecurityGroupService(object):
     def get_all(self, location):
         raise NotImplementedError()
 
+    def get_security_group(self, group_name, location):
+        raise NotImplementedError()
+
     def get_permissions(self, group_name, location):
         raise NotImplementedError()
 
