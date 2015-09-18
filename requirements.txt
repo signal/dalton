@@ -4,6 +4,7 @@ requests==2.4.1
 flask
 cachetools
 pyparsing
+path.py
 nose
 --allow-unverified pymock
 --allow-external pymock

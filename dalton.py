@@ -3,19 +3,20 @@
 Dalton manages your security groups.
 
 Usage:
-  dalton [-d | --dry-run] <environment> <region>
+  dalton [-d | --dry-run] <config-dir> <environment> <region>
   dalton -h | --help
   dalton --version
 
 Options:
   -d --dry-run          Performs a "dry run" to show (but not perform) security group changes
-  --version             Show version.
+  -v --version          Show version.
   -h --help             Show this screen.
 """
 
 from logging import basicConfig, getLogger, CRITICAL, INFO
 
 from docopt import docopt
+from path import path
 import yaml
 
 from dalton.config import YamlFileSecurityGroupsConfigLoader
@@ -23,7 +24,7 @@ from dalton.ec2 import Ec2SecurityGroupService
 from dalton.updater import SecurityGroupUpdater
 
 
-def main(env, region, dry_run):
+def main(config_dir, env, region, dry_run):
     basicConfig(
         level=INFO,
         format='%(asctime)s %(levelname)-3s %(name)s (%(funcName)s:%(lineno)d) %(message)s',
@@ -31,7 +32,7 @@ def main(env, region, dry_run):
     )
     getLogger('boto').level = CRITICAL
 
-    security_groups = YamlFileSecurityGroupsConfigLoader("config/%s/security_groups_%s.yaml" % (env, region)).load()
+    security_groups = YamlFileSecurityGroupsConfigLoader("%s/%s/security_groups_%s.yaml" % (config_dir, env, region)).load()
     updater = SecurityGroupUpdater(Ec2SecurityGroupService(yaml.load(open('config/aws.yaml', 'r').read())[env]))
 
     for name, security_group in security_groups.iteritems():
@@ -48,4 +49,4 @@ def main(env, region, dry_run):
 
 if __name__ == '__main__':
     options = docopt(__doc__, version='Dalton 0.1.0')
-    main(options['<environment>'], options['<region>'], options['--dry-run'])
+    main(path(options['<config-dir>']), options['<environment>'], options['<region>'], options['--dry-run'])
