@@ -33,7 +33,7 @@ def main(config_dir, env, region, dry_run):
     getLogger('boto').level = CRITICAL
 
     security_groups = YamlFileSecurityGroupsConfigLoader("%s/%s/security_groups_%s.yaml" % (config_dir, env, region)).load()
-    updater = SecurityGroupUpdater(Ec2SecurityGroupService(yaml.load(open('config/aws.yaml', 'r').read())[env]))
+    updater = SecurityGroupUpdater(Ec2SecurityGroupService(yaml.load(open('%s/aws.yaml' % config_dir, 'r').read())[env]))
 
     for name, security_group in security_groups.iteritems():
         created_new = updater.create_security_group_if_not_exists(name, security_group.description, region, dry_run)
