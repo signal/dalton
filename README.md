@@ -68,8 +68,8 @@ Within each environment, it allows you to run multiple "regions" (geographically
 
 There are two pieces of configuration for using the Dalton runner.
 
-1. AWS Credentials: located in `./config/aws.yaml`.
-2. Security Group Rulesets: located in `./config` with one environment `<env>` per directory and one region `<region>` per file.
+1. AWS Credentials: located in `<config-dir>/aws.yaml`.
+2. Security Group Rulesets: located in `<config-dir>` with one environment `<env>` per directory and one region `<region>` per file.
 
 The AWS Credentials file format is as follows.
 
@@ -99,11 +99,11 @@ Security Group Ruleset configuration details and examples.
 
 You probably want to know the changes before you perform them. Pass the `--dry-run` (or `-d`) flags for dry-run mode.
 
-    ./dalton.py --dry-run <env> <region>
+    ./dalton.py --dry-run <config-dir> <env> <region>
 
 Once you're happy with the changes to be made, run
 
-    ./dalton.py <env> <region>
+    ./dalton.py <config-dir> <env> <region>
 
 ## Tests
 
