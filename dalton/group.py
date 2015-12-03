@@ -27,7 +27,7 @@ class SecurityGroupsConfig(object):
       self.updater = SecurityGroupUpdater(self.service)
 
     def apply(self, vpc=None):
-      rack = vpc.id if vpc else None
+      rack = vpc if vpc else None
       existing_groups = {group.name: group for group in self.service.get_all(self.region, rack)}
       security_groups = self.replace_rule_security_group_names_with_ids(self.security_groups, existing_groups)
       security_groups = self.index_by_security_group_id(security_groups, existing_groups)

@@ -20,48 +20,48 @@ class Ec2SecurityGroupService(SecurityGroupService):
         self.credentials = credentials
         self.connection = connection
 
-    def create(self, group_name, description, region, vpc=None, dry_run=False):
+    def create(self, group_name, description, region, vpc_id=None, dry_run=False):
         try:
-            return self._client(region, vpc).create_security_group(group_name, description, dry_run=dry_run)
+            return self._client(region, vpc_id).create_security_group(group_name, description, dry_run=dry_run)
         except EC2ResponseError, e:
             log.info(e.message)
 
     def exists(self, group_name, region, vpc=None):
         return self.get_security_group(group_name, region, vpc) is not None
 
-    def delete(self, group_name, region, vpc=None, dry_run=False):
+    def delete(self, group_id, region, vpc_id=None, dry_run=False):
         try:
-            self._client(region, vpc).delete_security_group(group_name, dry_run=dry_run)
+            self._client(region, vpc_id).delete_security_group(group_id=group_id, dry_run=dry_run)
         except EC2ResponseError, e:
             log.info(e.message)
 
     @ttl_cache()
-    def get_all(self, region, vpc=None):
-        security_groups = self._client(region, vpc).get_all_security_groups()
+    def get_all(self, region, vpc_id):
+        security_groups = self._client(region, vpc_id).get_all_security_groups()
         return [security_group for security_group in security_groups
-                if (not vpc and not security_group.vpc_id) or (vpc and vpc.id == security_group.vpc_id)]
+                if (not vpc_id and not security_group.vpc_id) or (vpc_id == security_group.vpc_id)]
 
-    def get_security_group(self, group_name, region, vpc=None):
+    def get_security_group(self, group_name, region, vpc):
         matching = filter(lambda group: group.name == group_name, self.get_all(region, vpc))
         return matching[0] if matching else None
 
-    def get_permissions(self, group_name, region, vpc=None):
-        security_group = self.get_security_group(group_name, region, vpc)
+    def get_permissions(self, group_name, region, vpc_id=None):
+        security_group = self.get_security_group(group_name, region, vpc_id)
         return self._from_ip_permissions(security_group.rules) if security_group else set()
 
-    def authorize_ingress_rules(self, group_name, rules, region, vpc=None, dry_run=False):
+    def authorize_ingress_rules(self, group_name, rules, region, vpc_id=None, dry_run=False):
         for rule in rules:
             try:
-                self._client(region, vpc).authorize_security_group(dry_run=dry_run,
-                                                                   **self._to_ip_permissions(rule, group_name, region, vpc))
+                self._client(region, vpc_id).authorize_security_group(dry_run=dry_run,
+                                                                   **self._to_ip_permissions(rule, group_name, region, vpc_id))
             except EC2ResponseError, e:
                 log.info(e.message)
 
-    def revoke_ingress_rules(self, group_name, rules, region, vpc=None, dry_run=False):
+    def revoke_ingress_rules(self, group_name, rules, region, vpc_id=None, dry_run=False):
         for rule in rules:
             try:
-                self._client(region, vpc).revoke_security_group(dry_run=dry_run,
-                                                                **self._to_ip_permissions(rule, group_name, region, vpc))
+                self._client(region, vpc_id).revoke_security_group(dry_run=dry_run,
+                                                                **self._to_ip_permissions(rule, group_name, region, vpc_id))
             except EC2ResponseError, e:
                 log.info(e.message)
 
@@ -79,6 +79,7 @@ class Ec2SecurityGroupService(SecurityGroupService):
         source = {'ip_protocol': rule.protocol, 'from_port': from_port, 'to_port': to_port}
         dest = {'group_id': self.get_security_group(group_name, region, vpc).id}
         if rule.security_group_name:
+            #TODO: will break if "Type" for security rule is "All traffic"
             source['src_security_group_group_id'] = self.get_security_group(rule.security_group_name, region, vpc).id
         elif rule.security_group_id:
             source['src_security_group_group_id'] = rule.security_group_id
@@ -97,6 +98,6 @@ class Ec2SecurityGroupService(SecurityGroupService):
         elif rule.ip_protocol == 'icmp' and rule.from_port != '-1' and rule.to_port == '-1':
             from_port, to_port = int(rule.from_port), int(rule.from_port)
         else:
-            from_port, to_port = int(rule.from_port), int(rule.to_port)
+              from_port, to_port = int(rule.from_port), int(rule.to_port)
         return Rule(protocol=rule.ip_protocol, security_group_id=grant.group_id, security_group_name=grant.name,
                     address=grant.cidr_ip, from_port=from_port, to_port=to_port)
