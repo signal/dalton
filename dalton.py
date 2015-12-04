@@ -49,5 +49,5 @@ def main(config_dir, env, region, vpc_id, dry_run):
 
 
 if __name__ == '__main__':
-    options = docopt(__doc__, version='Dalton 0.1.0')
+    options = docopt(__doc__, version='Dalton 0.2.0')
     main(path(options['<config-dir>']), options['<environment>'], options['<region>'], options['--vpc'], options['--dry-run'])

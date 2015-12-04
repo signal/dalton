@@ -50,7 +50,6 @@ class SecurityGroupUpdaterTest(PyMockTestCase):
     def test_update_security_group_rules_revoke_rules_in_vpc(self):
         self.test_update_security_group_rules_revoke_rules(vpc="konkolnafulous")
 
-
     def test_update_security_group_rules_authorize_and_revoke_rules(self, vpc=None):
         service = self.mock()
         sg1, sg2 = FakeSecurityGroup('sg1-id', 'sg1-name'), FakeSecurityGroup('sg2-id', 'sg2-name')
